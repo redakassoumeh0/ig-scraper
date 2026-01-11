@@ -7,7 +7,6 @@ This phase translates all previous planning phases into a **clear, actionable ch
 Its goal is to answer one question:
 
 > “What exactly do I do next, and in what order?”
-> 
 
 No technical implementation is performed here.
 

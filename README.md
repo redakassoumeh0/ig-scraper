@@ -116,4 +116,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## Disclaimer
 
 This project is an independent effort and is not associated with Instagram or Meta. Use responsibly and in accordance with Instagram's Terms of Service and applicable laws.
-

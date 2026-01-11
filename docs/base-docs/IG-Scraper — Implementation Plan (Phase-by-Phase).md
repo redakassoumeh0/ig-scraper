@@ -1,12 +1,10 @@
 # IG-Scraper — Implementation Plan (Phase-by-Phase) (v0)
 
 > Status: EXECUTION PLAN (READY)
-> 
-> 
+>
 > Scope: From “empty repo” → first usable **v0.x** experimental release
-> 
+>
 > Assumption: Planning docs already committed; now we implement.
-> 
 
 ---
 
@@ -24,10 +22,10 @@
 - Add lint + format (ESLint + Prettier)
 - Add `typecheck`, `lint`, `build` scripts
 - Add minimal folder structure:
-    - `src/public/` (public API boundary)
-    - `src/internal/` (engine + helpers)
-    - `src/features/` (targets by feature)
-    - `src/shared/` (types, utils)
+  - `src/public/` (public API boundary)
+  - `src/internal/` (engine + helpers)
+  - `src/features/` (targets by feature)
+  - `src/shared/` (types, utils)
 - Add CI workflow (optional but recommended): `lint` + `typecheck` + `build`
 
 ### Deliverables
@@ -53,17 +51,17 @@
 
 - Implement `IGSessionState`, `IGResult<T>`, `IGError`, error types
 - Implement `IGScraper` class:
-    - constructor(session, config?)
-    - `close()`
-    - `exportSession()`
-    - `validateSession()`
-    - `getProfile()`
-    - `listProfilePosts()`
-    - `getPost()`
+  - constructor(session, config?)
+  - `close()`
+  - `exportSession()`
+  - `validateSession()`
+  - `getProfile()`
+  - `listProfilePosts()`
+  - `getPost()`
 - Implement config defaults + logger interface
 - Implement internal “result helpers”:
-    - `ok(data, meta?)`
-    - `fail(error, meta?, warnings?)`
+  - `ok(data, meta?)`
+  - `fail(error, meta?, warnings?)`
 
 ### Deliverables
 
@@ -88,20 +86,20 @@
 
 - Add Playwright dependency + Chromium install strategy
 - Create internal modules:
-    - `internal/browser/launchChromium.ts`
-    - `internal/browser/createContext.ts` (applies `storageState`)
-    - `internal/browser/createPage.ts`
+  - `internal/browser/launchChromium.ts`
+  - `internal/browser/createContext.ts` (applies `storageState`)
+  - `internal/browser/createPage.ts`
 - Apply stable defaults:
-    - `headless: true`
-    - timeouts
-    - locale/timezone
+  - `headless: true`
+  - timeouts
+  - locale/timezone
 - Add lifecycle ownership:
-    - `IGScraper.close()` closes browser/context/page safely
+  - `IGScraper.close()` closes browser/context/page safely
 - Implement `exportSession()`:
-    - gets latest `storageState` from context
+  - gets latest `storageState` from context
 - Implement `validateSession()` (best-effort):
-    - navigate to a safe Instagram page
-    - detect login status (simple heuristic)
+  - navigate to a safe Instagram page
+  - detect login status (simple heuristic)
 
 ### Deliverables
 
@@ -117,10 +115,8 @@
 ## Phase 3 — Auth Utilities (Login Helper) (Optional but Practical)
 
 > Note: v0 “Login mandatory” doesn’t mean the library must automate login—
-> 
-> 
+>
 > but having a helper is practical for DX. Keep it optional and explicit.
-> 
 
 ### Goals
 
@@ -130,9 +126,9 @@
 
 - `IGScraper.createSessionWithLogin(credentials?)` **OR** separate utility `createSession(...)`
 - Support manual login flow (recommended):
-    - open a headed browser
-    - user logs in manually
-    - press Enter in terminal (or callback) → export session
+  - open a headed browser
+  - user logs in manually
+  - press Enter in terminal (or callback) → export session
 - Store nothing automatically
 
 ### Deliverables
@@ -155,12 +151,12 @@
 ### Tasks
 
 - Decide extraction strategy for profile page:
-    - Navigate to profile URL
-    - Capture raw JSON sources where available
-    - Fallback to DOM selectors if needed
+  - Navigate to profile URL
+  - Capture raw JSON sources where available
+  - Fallback to DOM selectors if needed
 - Build normalizer mapping to `IGProfileNormalized`
 - Handle private/restricted/not-found cases:
-    - `PRIVATE_RESTRICTED`, `NOT_FOUND`, `AUTH_REQUIRED`
+  - `PRIVATE_RESTRICTED`, `NOT_FOUND`, `AUTH_REQUIRED`
 - Add warnings for partial fields
 - Add minimal debug logging hooks
 
@@ -171,10 +167,10 @@
 ### Exit Criteria
 
 - Works for:
-    - public profile
-    - private profile not accessible
-    - private profile accessible (if session follows)
-    - not found username
+  - public profile
+  - private profile not accessible
+  - private profile accessible (if session follows)
+  - not found username
 
 ---
 
@@ -190,12 +186,12 @@
 - Normalize into `IGPostSurfaceNormalized[]`
 - Support `limit` and `cursor`
 - Implement consistent pagination model:
-    - `items`
-    - `page: { cursor, hasNextPage }`
+  - `items`
+  - `page: { cursor, hasNextPage }`
 - Handle cases:
-    - no posts
-    - private restricted
-    - parsing changes
+  - no posts
+  - private restricted
+  - parsing changes
 
 ### Deliverables
 
@@ -217,13 +213,13 @@
 ### Tasks
 
 - Support input by:
-    - shortcode
-    - URL
+  - shortcode
+  - URL
 - Extract raw payload + normalize into `IGPostDetailNormalized`
 - Media normalization:
-    - image/video/carousel items
+  - image/video/carousel items
 - Optional best-effort extras:
-    - hashtags/mentions/locationName (if easy and stable)
+  - hashtags/mentions/locationName (if easy and stable)
 
 ### Deliverables
 
@@ -232,10 +228,10 @@
 ### Exit Criteria
 
 - Works for:
-    - image post
-    - video post
-    - carousel
-    - missing/removed post
+  - image post
+  - video post
+  - carousel
+  - missing/removed post
 
 ---
 
@@ -249,10 +245,10 @@
 
 - Add log levels: silent/error/info/debug
 - Add `debugArtifacts` option:
-    - screenshot on error
-    - HTML snapshot on error
+  - screenshot on error
+  - HTML snapshot on error
 - Standardize “parse changed” detection:
-    - if expected source not found → `PARSE_CHANGED`
+  - if expected source not found → `PARSE_CHANGED`
 - Add `debugId` to correlate logs/artifacts
 
 ### Deliverables
@@ -262,9 +258,9 @@
 ### Exit Criteria
 
 - When something fails, you can reproduce and see:
-    - what page
-    - what was missing
-    - screenshot/html evidence
+  - what page
+  - what was missing
+  - screenshot/html evidence
 
 ---
 
@@ -277,20 +273,20 @@
 ### Tasks
 
 - README (minimal):
-    - Install
-    - Quick Start
-    - Warnings
-    - Link to docs
+  - Install
+  - Quick Start
+  - Warnings
+  - Link to docs
 - Docs pages (minimum):
-    - Quick Start
-    - Session model (how to obtain and store session)
-    - API reference (generated or manual)
-    - Troubleshooting
-    - Ethics/Risks
+  - Quick Start
+  - Session model (how to obtain and store session)
+  - API reference (generated or manual)
+  - Troubleshooting
+  - Ethics/Risks
 - Examples:
-    - getProfile
-    - listProfilePosts + cursor
-    - getPost
+  - getProfile
+  - listProfilePosts + cursor
+  - getPost
 
 ### Deliverables
 
@@ -313,10 +309,10 @@
 - Changelog entry
 - Version bump `0.x.x`
 - Release checklist:
-    - build ok
-    - typecheck ok
-    - docs updated
-    - examples compile
+  - build ok
+  - typecheck ok
+  - docs updated
+  - examples compile
 - Publish automation (CI)
 
 ### Deliverables
@@ -340,12 +336,12 @@
 
 - Issue templates for breakage reports (include debug artifacts)
 - Hotfix workflow:
-    - reproduce
-    - minimal fix
-    - patch release
+  - reproduce
+  - minimal fix
+  - patch release
 - Periodic review:
-    - selectors/source changes
-    - normalize mappings
+  - selectors/source changes
+  - normalize mappings
 
 ### Exit Criteria
 

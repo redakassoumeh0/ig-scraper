@@ -49,9 +49,9 @@ Session persistence is **user-controlled**.
 
 - The library supports the concept of saving and reusing sessions
 - The user decides:
-    - Whether to persist a session at all
-    - Where the session is stored
-    - How session storage is managed in their environment
+  - Whether to persist a session at all
+  - Where the session is stored
+  - How session storage is managed in their environment
 
 The library does not enforce a storage location or persistence strategy.
 

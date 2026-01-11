@@ -13,9 +13,9 @@ Brief description of the changes in this PR.
 
 ## Changes Made
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Testing
 
@@ -40,4 +40,3 @@ Closes # (if applicable)
 ## Additional Notes
 
 Any additional information that reviewers should know.
-

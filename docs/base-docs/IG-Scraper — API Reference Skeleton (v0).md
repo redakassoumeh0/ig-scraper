@@ -1,10 +1,8 @@
 # IG-Scraper — API Reference Skeleton (v0)
 
 > Status: SKELETON (LOCKED SHAPE)
-> 
-> 
+>
 > Goal: Define the **public API surface** for v0.x without implementation details.
-> 
 
 This document is the executable contract for the library’s public API.
 
@@ -15,7 +13,7 @@ This document is the executable contract for the library’s public API.
 ### Import
 
 ```tsx
-import { IGScraper } from "ig-scraper";
+import { IGScraper } from 'ig-scraper';
 ```
 
 ---
@@ -43,7 +41,6 @@ export type IGSessionState = {
     timezone?: string;
   };
 };
-
 ```
 
 ### 1.2 Result Model
@@ -64,21 +61,20 @@ export type IGResult<TNormalized> = {
     debugId?: string;
   };
 };
-
 ```
 
 ### 1.3 Errors
 
 ```tsx
 export type IGErrorType =
-  | "AUTH_REQUIRED"
-  | "CHECKPOINT"
-  | "RATE_LIMIT"
-  | "PRIVATE_RESTRICTED"
-  | "NOT_FOUND"
-  | "NETWORK"
-  | "SCRAPE_FAILED"
-  | "PARSE_CHANGED";
+  | 'AUTH_REQUIRED'
+  | 'CHECKPOINT'
+  | 'RATE_LIMIT'
+  | 'PRIVATE_RESTRICTED'
+  | 'NOT_FOUND'
+  | 'NETWORK'
+  | 'SCRAPE_FAILED'
+  | 'PARSE_CHANGED';
 
 export type IGError = {
   type: IGErrorType;
@@ -88,7 +84,6 @@ export type IGError = {
   retryable?: boolean;
   checkpointUrl?: string;
 };
-
 ```
 
 ---
@@ -98,7 +93,7 @@ export type IGError = {
 ### 2.1 Logger
 
 ```tsx
-export type IGLogLevel = "silent" | "error" | "info" | "debug";
+export type IGLogLevel = 'silent' | 'error' | 'info' | 'debug';
 
 export interface IGLogger {
   level: IGLogLevel;
@@ -106,7 +101,6 @@ export interface IGLogger {
   info(message: string, meta?: Record<string, unknown>): void;
   debug(message: string, meta?: Record<string, unknown>): void;
 }
-
 ```
 
 ### 2.2 Constructor Config
@@ -132,7 +126,6 @@ export type IGScraperConfig = {
     captureOnError?: boolean; // default: true
   };
 };
-
 ```
 
 ---
@@ -149,7 +142,6 @@ export type IGPagedResult<TItem> = {
   items: TItem[];
   page: IGPagination;
 };
-
 ```
 
 ---
@@ -157,12 +149,11 @@ export type IGPagedResult<TItem> = {
 ## 4. Normalized Data Models (v0)
 
 > Normalized models are intended to be stable and meaningful. Raw data remains available for fidelity and debugging.
-> 
 
 ### 4.1 Profile
 
 ```tsx
-export type IGProfileAccess = "PUBLIC" | "PRIVATE" | "RESTRICTED" | "UNKNOWN";
+export type IGProfileAccess = 'PUBLIC' | 'PRIVATE' | 'RESTRICTED' | 'UNKNOWN';
 
 export type IGProfileNormalized = {
   id?: string;
@@ -189,13 +180,12 @@ export type IGProfileNormalized = {
   // Timestamps
   fetchedAt: string; // ISO
 };
-
 ```
 
 ### 4.2 Post Surface (List Item)
 
 ```tsx
-export type IGPostMediaType = "IMAGE" | "VIDEO" | "CAROUSEL" | "UNKNOWN";
+export type IGPostMediaType = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'UNKNOWN';
 
 export type IGPostSurfaceNormalized = {
   id?: string;
@@ -216,7 +206,6 @@ export type IGPostSurfaceNormalized = {
   // Timestamps
   fetchedAt: string; // ISO
 };
-
 ```
 
 ### 4.3 Post Details
@@ -259,7 +248,6 @@ export type IGPostDetailNormalized = {
 
   fetchedAt: string; // ISO
 };
-
 ```
 
 ---
@@ -293,7 +281,10 @@ export class IGScraper {
    * Fetches all available profile-level information.
    * Accepts username (preferred) or profile URL.
    */
-  getProfile(input: { username?: string; url?: string }): Promise<IGResult<IGProfileNormalized>>;
+  getProfile(input: {
+    username?: string;
+    url?: string;
+  }): Promise<IGResult<IGProfileNormalized>>;
 
   /**
    * Fetches surface-level post metadata for a profile.
@@ -311,9 +302,11 @@ export class IGScraper {
    * Fetches full details for a specific post.
    * Accepts shortcode (preferred) or post URL.
    */
-  getPost(input: { shortcode?: string; url?: string }): Promise<IGResult<IGPostDetailNormalized>>;
+  getPost(input: {
+    shortcode?: string;
+    url?: string;
+  }): Promise<IGResult<IGPostDetailNormalized>>;
 }
-
 ```
 
 ---
