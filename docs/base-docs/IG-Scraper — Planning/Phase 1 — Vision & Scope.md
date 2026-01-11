@@ -31,7 +31,6 @@ This library exists to remove that burden by providing a stable, maintained foun
 The primary goal of the initial version is:
 
 > To reliably extract all essential Instagram data required by the maintainer’s dependent project.
-> 
 
 If this goal is achieved, the library is considered successful at this stage.
 
@@ -101,10 +100,8 @@ Clarity and transparency are intentional design choices.
 At a conceptual level, this project is best described as:
 
 > A scraping engine built on top of browser automation technologies
-> 
-> 
+>
 > (e.g., Playwright or Puppeteer)
-> 
 
 This classification is descriptive, not a technical commitment at this stage.
 

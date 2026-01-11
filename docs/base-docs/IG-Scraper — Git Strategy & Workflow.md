@@ -1,10 +1,8 @@
 # IG-Scraper — Git Strategy & Workflow
 
 > Status: LOCKED (Execution Rulebook)
-> 
-> 
+>
 > Applies to: v0.x experimental phase and beyond
-> 
 
 This document defines the **official Git strategy** for the IG-Scraper project.
 
@@ -99,9 +97,9 @@ A Pull Request may only be merged if:
 
 - The branch is up to date with `main`
 - CI checks pass:
-    - build
-    - lint
-    - typecheck
+  - build
+  - lint
+  - typecheck
 - The PR description clearly explains the change
 
 ---
@@ -176,9 +174,9 @@ Tags always point to a commit on `main`.
 
 - `CHANGELOG.md` is mandatory for every release
 - Each entry must describe:
-    - What changed
-    - Why it changed
-    - Impact on users
+  - What changed
+  - Why it changed
+  - Impact on users
 
 ---
 

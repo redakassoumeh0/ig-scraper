@@ -1,10 +1,8 @@
 # IG-Scraper — Technical Execution Decisions (v0)
 
 > Status: LOCKED (Execution-Ready)
-> 
-> 
+>
 > Scope: Applies to v0.x experimental releases
-> 
 
 This document consolidates all **technical execution decisions** agreed upon after completing the planning phases (Phase 0 → Phase 9).
 
@@ -34,9 +32,9 @@ Conceptually equivalent to a Playwright `storageState` object.
 - Session persistence is **fully user-controlled**
 - The library never writes session data to disk
 - The user decides:
-    - Where the session is stored
-    - When it is refreshed
-    - How it is secured
+  - Where the session is stored
+  - When it is refreshed
+  - How it is secured
 
 ### 1.4 Security Notes
 
@@ -76,8 +74,8 @@ new IGScraper(session, config?)
 
 - The user is responsible for calling `close()`
 - If `close()` is not called:
-    - Browser resources may remain open
-    - Session data is **not persisted automatically**
+  - Browser resources may remain open
+  - Session data is **not persisted automatically**
 
 No automatic cleanup or persistence is performed by the library.
 
@@ -185,8 +183,9 @@ Operations return a **structured result object**, not thrown exceptions.
 An optional configuration flag enables exception-based behavior:
 
 ```tsx
-{ throwOnError: true }
-
+{
+  throwOnError: true;
+}
 ```
 
 ---

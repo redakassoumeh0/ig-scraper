@@ -48,8 +48,8 @@ Vague or out-of-scope requests are rejected.
 ## Pull Request Policy
 
 - Pull Requests **without an Issue** are allowed only for:
-    - The founder
-    - Explicitly assigned maintainers
+  - The founder
+  - Explicitly assigned maintainers
 - All other contributors must link PRs to an existing Issue.
 
 This rule ensures clarity, traceability, and controlled evolution.

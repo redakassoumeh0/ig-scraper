@@ -68,7 +68,6 @@ Both are available from the beginning.
 The primary usage scenario is:
 
 > Easily extracting all available data from any Instagram account that the user has access to.
-> 
 
 This scenario defines the core value of the library.
 

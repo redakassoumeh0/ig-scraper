@@ -17,14 +17,14 @@ What error type was returned? (e.g., `PARSE_CHANGED`, `AUTH_REQUIRED`, `NOT_FOUN
 ## Debug Information
 
 - **Debug ID**: (if available from error response)
-- **Error Message**: 
+- **Error Message**:
 - **Checkpoint URL**: (if available)
 
 ## Steps to Reproduce
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected Behavior
 
@@ -43,9 +43,9 @@ If you enabled `debugArtifacts` in your config:
 
 ## Environment
 
-- **Node Version**: 
-- **IG-Scraper Version**: 
-- **OS**: 
+- **Node Version**:
+- **IG-Scraper Version**:
+- **OS**:
 
 ## Additional Context
 
@@ -56,4 +56,3 @@ Add any other context about the problem here.
 ```typescript
 // Minimal code to reproduce the issue
 ```
-

@@ -138,4 +138,3 @@ When reporting issues (especially breakages):
 If you have questions, please open an issue or start a discussion in the GitHub repository.
 
 Thank you for contributing to IG-Scraper!
-

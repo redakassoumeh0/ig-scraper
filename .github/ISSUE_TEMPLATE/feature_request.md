@@ -34,4 +34,3 @@ If not in v0 scope, please explain why it should be considered.
 ## Additional Context
 
 Add any other context, examples, or mockups about the feature request here.
-

@@ -17,7 +17,6 @@ The goal is to ensure that documentation:
 The primary role of documentation is:
 
 > Teaching how to use the library
-> 
 
 This project does not aim to deeply explain internal architectural decisions through documentation. Documentation is usage-focused and practical.
 
