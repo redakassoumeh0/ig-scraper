@@ -7,7 +7,14 @@ import type { IGProfileNormalized } from './types/models.js';
 import type { IGResult } from './types/result.js';
 import type { IGSessionState } from './types/session.js';
 import { fail } from '../internal/result/fail.js';
+import { ok } from '../internal/result/ok.js';
 import { time } from '../internal/result/time.js';
+import type { EngineState, EngineConfig } from '../internal/engine/types.js';
+import { mergeWithDefaults } from '../internal/engine/defaults.js';
+import { launchBrowser } from '../internal/engine/launch.js';
+import { createContext } from '../internal/engine/context.js';
+import { createPage } from '../internal/engine/page.js';
+import { closeEngine } from '../internal/engine/lifecycle.js';
 
 /**
  * Main class for Instagram scraping operations.
@@ -15,8 +22,8 @@ import { time } from '../internal/result/time.js';
  */
 export class IGScraper {
   private readonly session: IGSessionState;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private readonly _config: IGScraperConfig; // Will be used in Phase 2
+  private readonly config: EngineConfig;
+  private engineState: EngineState | null = null;
 
   /**
    * Creates a new IGScraper instance.
@@ -25,19 +32,90 @@ export class IGScraper {
    * @param config - Optional configuration options
    */
   constructor(session: IGSessionState, config?: IGScraperConfig) {
+    // Light validation of session object shape
+    if (!session || typeof session !== 'object') {
+      throw new Error('Invalid session: session must be an object');
+    }
+    if (!session.storageState || typeof session.storageState !== 'object') {
+      throw new Error(
+        'Invalid session: storageState is required and must be an object'
+      );
+    }
+
     this.session = session;
-    this._config = config ?? {};
-    // Config will be used in Phase 2 for engine initialization
-    void this._config;
+    this.config = mergeWithDefaults(config);
+    this.engineState = null;
+  }
+
+  /**
+   * Ensures the engine is initialized (lazy initialization).
+   * Launches browser on first call that needs it.
+   *
+   * @private
+   */
+  private async ensureEngine(): Promise<EngineState> {
+    // If already initialized, return existing state
+    if (this.engineState && this.engineState.status === 'initialized') {
+      return this.engineState;
+    }
+
+    // If closed, throw error
+    if (this.engineState && this.engineState.status === 'closed') {
+      throw new Error('IGScraper has been closed and cannot be reused');
+    }
+
+    // Prevent concurrent initialization
+    if (this.engineState && this.engineState.status === 'initializing') {
+      throw new Error('Engine initialization already in progress');
+    }
+
+    // Initialize new engine state
+    this.engineState = {
+      browser: null,
+      context: null,
+      page: null,
+      status: 'initializing',
+    };
+
+    try {
+      // Launch browser
+      const browser = await launchBrowser(this.config);
+      this.engineState.browser = browser;
+
+      // Create context with session
+      const context = await createContext(browser, this.session, this.config);
+      this.engineState.context = context;
+
+      // Create page
+      const page = await createPage(context, this.config);
+      this.engineState.page = page;
+
+      // Mark as initialized
+      this.engineState.status = 'initialized';
+
+      return this.engineState;
+    } catch (error) {
+      // On initialization failure, attempt cleanup
+      if (this.engineState) {
+        await closeEngine(this.engineState);
+      }
+      this.engineState = null;
+      throw error;
+    }
   }
 
   /**
    * Closes all underlying browser resources.
    * User-owned responsibility.
+   * Safe to call multiple times (idempotent).
    */
   async close(): Promise<void> {
-    // Stub: Not implemented yet
-    // Will be implemented in Phase 2
+    if (!this.engineState) {
+      return;
+    }
+
+    await closeEngine(this.engineState);
+    this.engineState = null;
   }
 
   /**
@@ -45,9 +123,24 @@ export class IGScraper {
    * This does not persist anything.
    */
   async exportSession(): Promise<IGSessionState> {
-    // Stub: Not implemented yet
-    // Will be implemented in Phase 2
-    return this.session;
+    // Ensure engine is initialized
+    const engine = await this.ensureEngine();
+
+    if (!engine.context) {
+      throw new Error('Context not available');
+    }
+
+    // Get current storage state
+    const storageState = await engine.context.storageState();
+
+    // Return wrapped session with updated timestamp
+    return {
+      storageState,
+      createdAt: this.session.createdAt,
+      updatedAt: new Date().toISOString(),
+      accountHint: this.session.accountHint,
+      meta: this.session.meta,
+    };
   }
 
   /**
@@ -55,11 +148,74 @@ export class IGScraper {
    */
   async validateSession(): Promise<IGResult<{ valid: boolean }>> {
     const startMs = Date.now();
-    const error: IGError = {
-      type: 'SCRAPE_FAILED',
-      message: 'Not implemented yet',
-    };
-    return fail<{ valid: boolean }>(error, { durationMs: time(startMs) });
+
+    try {
+      // Ensure engine is initialized
+      const engine = await this.ensureEngine();
+
+      if (!engine.page) {
+        throw new Error('Page not available');
+      }
+
+      // Navigate to Instagram homepage
+      try {
+        await engine.page.goto('https://www.instagram.com/', {
+          waitUntil: 'domcontentloaded',
+        });
+      } catch (error) {
+        // Network error
+        const networkError: IGError = {
+          type: 'NETWORK',
+          message: `Failed to navigate to Instagram: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return fail<{ valid: boolean }>(networkError, {
+          durationMs: time(startMs),
+        });
+      }
+
+      // Best-effort login detection using simple heuristics
+      // Look for elements that indicate logged-in state
+
+      // Method 1: Check for navigation elements that only appear when logged in
+      const hasNavBar = await engine.page
+        .locator('nav[role="navigation"]')
+        .count();
+      const hasHomeLink = await engine.page.locator('a[href="/"]').count();
+
+      // Method 2: Check if we're on login page (indicates not logged in)
+      const currentUrl = engine.page.url();
+      const isOnLoginPage =
+        currentUrl.includes('/accounts/login') ||
+        currentUrl.includes('/accounts/emailsignup');
+
+      // Determine if session is valid
+      const valid = (hasNavBar > 0 || hasHomeLink > 0) && !isOnLoginPage;
+
+      if (!valid) {
+        // Session is invalid - return AUTH_REQUIRED error
+        const authError: IGError = {
+          type: 'AUTH_REQUIRED',
+          message: 'Session is invalid or expired. Please login again.',
+        };
+        return fail<{ valid: boolean }>(authError, {
+          durationMs: time(startMs),
+        });
+      }
+
+      // Session is valid
+      return ok<{ valid: boolean }>(
+        { raw: { valid: true }, normalized: { valid: true } },
+        { durationMs: time(startMs) }
+      );
+    } catch (error) {
+      const scrapeError: IGError = {
+        type: 'SCRAPE_FAILED',
+        message: `Session validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+      return fail<{ valid: boolean }>(scrapeError, {
+        durationMs: time(startMs),
+      });
+    }
   }
 
   // --- Data Targets (v0) ---
