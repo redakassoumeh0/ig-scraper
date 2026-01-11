@@ -4,6 +4,13 @@
 // Main class
 export { IGScraper } from './public/IGScraper.js';
 
+// Session utilities
+export {
+  createSession,
+  createSessionWithCodegen,
+} from './public/session/index.js';
+export type { CreateSessionOptions } from './public/session/index.js';
+
 // Types
 export type { IGStorageState, IGSessionState } from './public/types/session.js';
 
