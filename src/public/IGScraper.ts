@@ -8,6 +8,12 @@ import type { IGResult } from './types/result.js';
 import type { IGSessionState } from './types/session.js';
 import { fail } from '../internal/result/fail.js';
 import { time } from '../internal/result/time.js';
+import type { EngineState, EngineConfig } from '../internal/engine/types.js';
+import { mergeWithDefaults } from '../internal/engine/defaults.js';
+import { launchBrowser } from '../internal/engine/launch.js';
+import { createContext } from '../internal/engine/context.js';
+import { createPage } from '../internal/engine/page.js';
+import { closeEngine } from '../internal/engine/lifecycle.js';
 
 /**
  * Main class for Instagram scraping operations.
@@ -15,8 +21,8 @@ import { time } from '../internal/result/time.js';
  */
 export class IGScraper {
   private readonly session: IGSessionState;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private readonly _config: IGScraperConfig; // Will be used in Phase 2
+  private readonly config: EngineConfig;
+  private engineState: EngineState | null = null;
 
   /**
    * Creates a new IGScraper instance.
@@ -25,19 +31,90 @@ export class IGScraper {
    * @param config - Optional configuration options
    */
   constructor(session: IGSessionState, config?: IGScraperConfig) {
+    // Light validation of session object shape
+    if (!session || typeof session !== 'object') {
+      throw new Error('Invalid session: session must be an object');
+    }
+    if (!session.storageState || typeof session.storageState !== 'object') {
+      throw new Error(
+        'Invalid session: storageState is required and must be an object'
+      );
+    }
+
     this.session = session;
-    this._config = config ?? {};
-    // Config will be used in Phase 2 for engine initialization
-    void this._config;
+    this.config = mergeWithDefaults(config);
+    this.engineState = null;
+  }
+
+  /**
+   * Ensures the engine is initialized (lazy initialization).
+   * Launches browser on first call that needs it.
+   *
+   * @private
+   */
+  private async ensureEngine(): Promise<EngineState> {
+    // If already initialized, return existing state
+    if (this.engineState && this.engineState.status === 'initialized') {
+      return this.engineState;
+    }
+
+    // If closed, throw error
+    if (this.engineState && this.engineState.status === 'closed') {
+      throw new Error('IGScraper has been closed and cannot be reused');
+    }
+
+    // Prevent concurrent initialization
+    if (this.engineState && this.engineState.status === 'initializing') {
+      throw new Error('Engine initialization already in progress');
+    }
+
+    // Initialize new engine state
+    this.engineState = {
+      browser: null,
+      context: null,
+      page: null,
+      status: 'initializing',
+    };
+
+    try {
+      // Launch browser
+      const browser = await launchBrowser(this.config);
+      this.engineState.browser = browser;
+
+      // Create context with session
+      const context = await createContext(browser, this.session, this.config);
+      this.engineState.context = context;
+
+      // Create page
+      const page = await createPage(context, this.config);
+      this.engineState.page = page;
+
+      // Mark as initialized
+      this.engineState.status = 'initialized';
+
+      return this.engineState;
+    } catch (error) {
+      // On initialization failure, attempt cleanup
+      if (this.engineState) {
+        await closeEngine(this.engineState);
+      }
+      this.engineState = null;
+      throw error;
+    }
   }
 
   /**
    * Closes all underlying browser resources.
    * User-owned responsibility.
+   * Safe to call multiple times (idempotent).
    */
   async close(): Promise<void> {
-    // Stub: Not implemented yet
-    // Will be implemented in Phase 2
+    if (!this.engineState) {
+      return;
+    }
+
+    await closeEngine(this.engineState);
+    this.engineState = null;
   }
 
   /**
