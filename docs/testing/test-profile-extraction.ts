@@ -119,7 +119,9 @@ async function main(): Promise<void> {
     console.log('✓ Session is valid');
 
     // Step 4: Test getProfile with a known public profile
-    console.log('\nStep 4: Testing getProfile() with public profile (instagram)...');
+    console.log(
+      '\nStep 4: Testing getProfile() with public profile (instagram)...'
+    );
     const profileResult = await scraper.getProfile({ username: 'instagram' });
     validateProfileResult(profileResult, 'instagram');
 
@@ -185,4 +187,3 @@ main().catch((error) => {
   console.error('Unhandled error:', error);
   process.exit(1);
 });
-

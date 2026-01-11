@@ -286,7 +286,124 @@ async function isAuthRequired(page: Page): Promise<boolean> {
 }
 
 /**
+ * Intercepts and extracts profile data from Instagram API responses.
+ *
+ * @param page - Playwright page instance
+ * @returns Raw profile data or null if not found
+ */
+async function extractApiResponse(
+  page: Page
+): Promise<RawProfileData | null> {
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        page.off('response', responseHandler);
+        resolve(null);
+      }
+    }, 10000); // 10 second timeout
+
+    const responseHandler = async (response: {
+      url: () => string;
+      json: () => Promise<unknown>;
+      status: () => number;
+    }) => {
+      if (resolved) {
+        return;
+      }
+
+      try {
+        const url = response.url();
+        const status = response.status();
+
+        // Look for Instagram GraphQL API responses
+        if (
+          status === 200 &&
+          (url.includes('/graphql/query/') ||
+            url.includes('/api/v1/users/web_profile_info/') ||
+            url.includes('/api/v1/users/') ||
+            url.includes('__a=1') ||
+            url.includes('__d=dis'))
+        ) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const jsonData = (await response.json()) as any;
+
+            // Try various response structures
+            let userData: unknown = null;
+
+            // Structure 1: Direct user object
+            if (jsonData?.user) {
+              userData = jsonData.user;
+            }
+            // Structure 2: data.user
+            else if (jsonData?.data?.user) {
+              userData = jsonData.data.user;
+            }
+            // Structure 3: entry_data.ProfilePage[0].graphql.user
+            else if (
+              jsonData?.entry_data?.ProfilePage?.[0]?.graphql?.user
+            ) {
+              userData = jsonData.entry_data.ProfilePage[0].graphql.user;
+            }
+            // Structure 4: items[0] (array response)
+            else if (
+              Array.isArray(jsonData?.items) &&
+              jsonData.items.length > 0 &&
+              jsonData.items[0]
+            ) {
+              userData = jsonData.items[0];
+            }
+            // Structure 5: data.items[0]
+            else if (
+              jsonData?.data?.items &&
+              Array.isArray(jsonData.data.items) &&
+              jsonData.data.items.length > 0
+            ) {
+              userData = jsonData.data.items[0];
+            }
+            // Structure 6: users array
+            else if (
+              Array.isArray(jsonData?.users) &&
+              jsonData.users.length > 0
+            ) {
+              userData = jsonData.users[0];
+            }
+
+            if (userData && typeof userData === 'object') {
+              // Check if it has username (indicates it's profile data)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const profileData = userData as any;
+              if (profileData.username || profileData.user?.username) {
+                if (!resolved) {
+                  resolved = true;
+                  clearTimeout(timeout);
+                  page.off('response', responseHandler);
+                  resolve(
+                    (profileData.user || profileData) as RawProfileData
+                  );
+                }
+                return;
+              }
+            }
+          } catch {
+            // Not JSON or parsing failed, continue
+          }
+        }
+      } catch {
+        // Error handling response, continue
+      }
+    };
+
+    page.on('response', responseHandler);
+  });
+}
+
+/**
  * Extracts profile data from Instagram profile page.
+ * Tries API response interception first, then falls back to embedded JSON and DOM.
  *
  * @param page - Playwright page instance
  * @param profileUrl - Canonical profile URL
@@ -297,15 +414,28 @@ export async function extractProfile(
   profileUrl: string
 ): Promise<ExtractionResult> {
   try {
+    // Set up API response interception before navigation
+    const apiResponsePromise = extractApiResponse(page);
+
     // Navigate to profile page
     await page.goto(profileUrl, {
       waitUntil: 'domcontentloaded',
     });
 
-    // Wait a bit for dynamic content to load
-    await page.waitForTimeout(1000);
+    // Wait a bit for API responses to arrive
+    await page.waitForTimeout(2000);
 
-    // Check for error conditions first
+    // Try to get API response data (with timeout already handled in extractApiResponse)
+    const apiData = await apiResponsePromise;
+    if (apiData && apiData.username) {
+      return {
+        success: true,
+        data: apiData,
+        source: 'api',
+      };
+    }
+
+    // Check for error conditions
     if (await isAuthRequired(page)) {
       return {
         success: false,
@@ -327,7 +457,7 @@ export async function extractProfile(
       };
     }
 
-    // Try JSON extraction first (primary method)
+    // Fallback: Try JSON extraction (embedded in page)
     const jsonData = await extractJsonData(page);
     if (jsonData && jsonData.username) {
       return {
@@ -337,7 +467,7 @@ export async function extractProfile(
       };
     }
 
-    // Fallback to DOM extraction
+    // Fallback: Try DOM extraction
     const domData = await extractDomData(page);
     if (domData && domData.username) {
       return {
@@ -355,7 +485,10 @@ export async function extractProfile(
   } catch (error) {
     // Network or other errors
     if (error instanceof Error) {
-      if (error.message.includes('net::') || error.message.includes('Navigation')) {
+      if (
+        error.message.includes('net::') ||
+        error.message.includes('Navigation')
+      ) {
         return {
           success: false,
           error: 'NETWORK',

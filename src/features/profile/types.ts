@@ -39,7 +39,7 @@ export type ExtractionResult =
   | {
       success: true;
       data: RawProfileData;
-      source: 'json' | 'dom';
+      source: 'api' | 'json' | 'dom';
     }
   | {
       success: false;
