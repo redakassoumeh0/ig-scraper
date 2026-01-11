@@ -122,9 +122,24 @@ export class IGScraper {
    * This does not persist anything.
    */
   async exportSession(): Promise<IGSessionState> {
-    // Stub: Not implemented yet
-    // Will be implemented in Phase 2
-    return this.session;
+    // Ensure engine is initialized
+    const engine = await this.ensureEngine();
+
+    if (!engine.context) {
+      throw new Error('Context not available');
+    }
+
+    // Get current storage state
+    const storageState = await engine.context.storageState();
+
+    // Return wrapped session with updated timestamp
+    return {
+      storageState,
+      createdAt: this.session.createdAt,
+      updatedAt: new Date().toISOString(),
+      accountHint: this.session.accountHint,
+      meta: this.session.meta,
+    };
   }
 
   /**
