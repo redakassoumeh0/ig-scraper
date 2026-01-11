@@ -15,6 +15,11 @@ import { launchBrowser } from '../internal/engine/launch.js';
 import { createContext } from '../internal/engine/context.js';
 import { createPage } from '../internal/engine/page.js';
 import { closeEngine } from '../internal/engine/lifecycle.js';
+import {
+  extractProfile,
+  normalizeProfileUrl,
+} from '../features/profile/extract.js';
+import { normalizeProfile } from '../features/profile/normalize.js';
 
 /**
  * Main class for Instagram scraping operations.
@@ -224,16 +229,142 @@ export class IGScraper {
    * Fetches all available profile-level information.
    * Accepts username (preferred) or profile URL.
    */
-  async getProfile(_input: {
+  async getProfile(input: {
     username?: string;
     url?: string;
   }): Promise<IGResult<IGProfileNormalized>> {
     const startMs = Date.now();
-    const error: IGError = {
-      type: 'SCRAPE_FAILED',
-      message: 'Not implemented yet',
-    };
-    return fail<IGProfileNormalized>(error, { durationMs: time(startMs) });
+
+    try {
+      // Validate input
+      if (!input.username && !input.url) {
+        const error: IGError = {
+          type: 'SCRAPE_FAILED',
+          message: 'Either username or url must be provided',
+        };
+        return fail<IGProfileNormalized>(error, { durationMs: time(startMs) });
+      }
+
+      // Normalize input to canonical URL
+      let profileUrl: string;
+      let username: string;
+
+      try {
+        profileUrl = normalizeProfileUrl(input.username, input.url);
+
+        // Extract username from URL for normalization
+        const urlMatch = profileUrl.match(/instagram\.com\/([^/]+)/);
+        const extractedUsername = urlMatch ? urlMatch[1] : input.username;
+
+        if (!extractedUsername || typeof extractedUsername !== 'string') {
+          throw new Error('Could not extract username from URL');
+        }
+
+        username = extractedUsername;
+      } catch (error) {
+        const urlError: IGError = {
+          type: 'SCRAPE_FAILED',
+          message:
+            error instanceof Error ? error.message : 'Invalid input format',
+          cause: error,
+        };
+        return fail<IGProfileNormalized>(urlError, {
+          durationMs: time(startMs),
+        });
+      }
+
+      // Ensure engine is initialized
+      const engine = await this.ensureEngine();
+
+      if (!engine.page) {
+        const error: IGError = {
+          type: 'SCRAPE_FAILED',
+          message: 'Page not available',
+        };
+        return fail<IGProfileNormalized>(error, { durationMs: time(startMs) });
+      }
+
+      // Extract profile data
+      const extractionResult = await extractProfile(engine.page, profileUrl);
+
+      if (!extractionResult.success) {
+        // Map extraction error to IGError
+        let errorType: IGError['type'] = 'SCRAPE_FAILED';
+        let message = 'Profile extraction failed';
+
+        switch (extractionResult.error) {
+          case 'NOT_FOUND':
+            errorType = 'NOT_FOUND';
+            message = `Profile not found: ${username}`;
+            break;
+          case 'PRIVATE_RESTRICTED':
+            errorType = 'PRIVATE_RESTRICTED';
+            message = `Profile is private and not accessible: ${username}`;
+            break;
+          case 'AUTH_REQUIRED':
+            errorType = 'AUTH_REQUIRED';
+            message = 'Session is invalid or expired. Please login again.';
+            break;
+          case 'PARSE_CHANGED':
+            errorType = 'PARSE_CHANGED';
+            message =
+              'Instagram page structure changed. Expected data sources not found.';
+            break;
+          case 'NETWORK':
+            errorType = 'NETWORK';
+            message = 'Network error while fetching profile';
+            break;
+          default:
+            errorType = 'SCRAPE_FAILED';
+            message = `Profile extraction failed: ${extractionResult.error}`;
+        }
+
+        const error: IGError = {
+          type: errorType,
+          message,
+          hint:
+            errorType === 'PARSE_CHANGED'
+              ? 'Instagram may have changed their page structure. The library may need to be updated.'
+              : undefined,
+        };
+
+        return fail<IGProfileNormalized>(error, { durationMs: time(startMs) });
+      }
+
+      // Normalize the extracted data
+      const { normalized, warnings } = normalizeProfile(
+        extractionResult.data,
+        username
+      );
+
+      // Return successful result
+      const result = ok<IGProfileNormalized>(
+        {
+          raw: extractionResult.data,
+          normalized,
+        },
+        { durationMs: time(startMs) }
+      );
+
+      // Add warnings if present
+      if (warnings.length > 0) {
+        result.warnings = warnings;
+      }
+
+      return result;
+    } catch (error) {
+      // Unexpected error
+      const scrapeError: IGError = {
+        type: 'SCRAPE_FAILED',
+        message: `Unexpected error during profile extraction: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+        cause: error,
+      };
+      return fail<IGProfileNormalized>(scrapeError, {
+        durationMs: time(startMs),
+      });
+    }
   }
 
   /**
