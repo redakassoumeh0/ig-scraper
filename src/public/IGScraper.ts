@@ -7,6 +7,7 @@ import type { IGProfileNormalized } from './types/models.js';
 import type { IGResult } from './types/result.js';
 import type { IGSessionState } from './types/session.js';
 import { fail } from '../internal/result/fail.js';
+import { ok } from '../internal/result/ok.js';
 import { time } from '../internal/result/time.js';
 import type { EngineState, EngineConfig } from '../internal/engine/types.js';
 import { mergeWithDefaults } from '../internal/engine/defaults.js';
@@ -147,11 +148,74 @@ export class IGScraper {
    */
   async validateSession(): Promise<IGResult<{ valid: boolean }>> {
     const startMs = Date.now();
-    const error: IGError = {
-      type: 'SCRAPE_FAILED',
-      message: 'Not implemented yet',
-    };
-    return fail<{ valid: boolean }>(error, { durationMs: time(startMs) });
+
+    try {
+      // Ensure engine is initialized
+      const engine = await this.ensureEngine();
+
+      if (!engine.page) {
+        throw new Error('Page not available');
+      }
+
+      // Navigate to Instagram homepage
+      try {
+        await engine.page.goto('https://www.instagram.com/', {
+          waitUntil: 'domcontentloaded',
+        });
+      } catch (error) {
+        // Network error
+        const networkError: IGError = {
+          type: 'NETWORK',
+          message: `Failed to navigate to Instagram: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+        return fail<{ valid: boolean }>(networkError, {
+          durationMs: time(startMs),
+        });
+      }
+
+      // Best-effort login detection using simple heuristics
+      // Look for elements that indicate logged-in state
+
+      // Method 1: Check for navigation elements that only appear when logged in
+      const hasNavBar = await engine.page
+        .locator('nav[role="navigation"]')
+        .count();
+      const hasHomeLink = await engine.page.locator('a[href="/"]').count();
+
+      // Method 2: Check if we're on login page (indicates not logged in)
+      const currentUrl = engine.page.url();
+      const isOnLoginPage =
+        currentUrl.includes('/accounts/login') ||
+        currentUrl.includes('/accounts/emailsignup');
+
+      // Determine if session is valid
+      const valid = (hasNavBar > 0 || hasHomeLink > 0) && !isOnLoginPage;
+
+      if (!valid) {
+        // Session is invalid - return AUTH_REQUIRED error
+        const authError: IGError = {
+          type: 'AUTH_REQUIRED',
+          message: 'Session is invalid or expired. Please login again.',
+        };
+        return fail<{ valid: boolean }>(authError, {
+          durationMs: time(startMs),
+        });
+      }
+
+      // Session is valid
+      return ok<{ valid: boolean }>(
+        { raw: { valid: true }, normalized: { valid: true } },
+        { durationMs: time(startMs) }
+      );
+    } catch (error) {
+      const scrapeError: IGError = {
+        type: 'SCRAPE_FAILED',
+        message: `Session validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+      return fail<{ valid: boolean }>(scrapeError, {
+        durationMs: time(startMs),
+      });
+    }
   }
 
   // --- Data Targets (v0) ---
