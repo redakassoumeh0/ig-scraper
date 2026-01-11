@@ -21,4 +21,3 @@ export async function createPage(
 
   return page;
 }
-

@@ -22,4 +22,3 @@ export type EngineConfig = {
   locale: string;
   timezone: string;
 };
-

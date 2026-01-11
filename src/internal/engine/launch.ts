@@ -21,4 +21,3 @@ export async function launchBrowser(config: EngineConfig): Promise<Browser> {
 
   return browser;
 }
-

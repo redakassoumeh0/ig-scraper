@@ -47,4 +47,3 @@ export async function closeEngine(state: EngineState): Promise<void> {
   // Mark as closed
   state.status = 'closed';
 }
-

@@ -17,9 +17,7 @@ const ENGINE_DEFAULTS: EngineConfig = {
  * Merges user-provided config with defaults.
  * All optional fields are resolved to concrete values.
  */
-export function mergeWithDefaults(
-  userConfig?: IGScraperConfig
-): EngineConfig {
+export function mergeWithDefaults(userConfig?: IGScraperConfig): EngineConfig {
   return {
     headless: userConfig?.headless ?? ENGINE_DEFAULTS.headless,
     timeoutMs: userConfig?.timeoutMs ?? ENGINE_DEFAULTS.timeoutMs,
@@ -28,4 +26,3 @@ export function mergeWithDefaults(
     timezone: userConfig?.timezone ?? ENGINE_DEFAULTS.timezone,
   };
 }
-

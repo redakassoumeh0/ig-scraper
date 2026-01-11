@@ -18,7 +18,9 @@ export async function createContext(
 ): Promise<BrowserContext> {
   const context = await browser.newContext({
     // Apply session storage state
-    storageState: session.storageState,
+    // Cast to any since IGStorageState is intentionally flexible
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    storageState: session.storageState as any,
     // Apply locale and timezone
     locale: config.locale,
     timezoneId: config.timezone,
@@ -28,4 +30,3 @@ export async function createContext(
 
   return context;
 }
-
